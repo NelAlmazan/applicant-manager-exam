@@ -1,24 +1,38 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import "./App.css";
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import { Layout } from "antd";
+import { Home } from "./components/Home";
+import { ViewApplicant } from "./components/ViewApplicant";
+import { AddApplicant } from "./components/AddApplicant";
+import { EditApplicant } from "./components/EditApplicant";
+
+const { Header } = Layout;
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div style={{ margin: "auto", overflowX: "hidden" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          background: "linear-gradient(315deg,#6225DE,#945FFF)",
+          padding: 20,
+          marginBottom: 10,
+        }}
+      >
+        <h1 style={{ padding: 0, margin: 0, color: "white" }}>
+          Applicants Manager
+        </h1>
+      </div>
+      <Router>
+        <Switch>
+          <Route exact path="/" component={Home} />
+          <Route path="/view/:id" component={ViewApplicant} />
+          <Route path="/add" component={AddApplicant} />
+          <Route path="/edit/:id" component={EditApplicant} />
+        </Switch>
+      </Router>
     </div>
   );
 }
