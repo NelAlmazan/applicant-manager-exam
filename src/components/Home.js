@@ -1,17 +1,27 @@
 import React, { useState } from "react";
-// import { Table } from "antd";
-import Geocode from "react-geocode";
+import { graphql } from "react-apollo";
+import { flowRight as compose } from "lodash";
+
+import {
+  moveApplicantMutation,
+  deleteApplicantMutation,
+  saveOrRejectApplicantMutation,
+  updateApplicantMutation,
+} from "../graphql/mutations";
+import { getApplicantsQuery } from "../graphql/queries";
+
 import { Link } from "react-router-dom";
 import {
   Avatar,
+  Empty,
   Row,
   Col,
-  Divider,
+  Dropdown,
   Spin,
   Button,
   Modal,
-  Drawer,
-  Radio,
+  Menu,
+  message,
   Tabs,
   List,
   Space,
@@ -27,23 +37,281 @@ import {
 
 import "./Home.css";
 
-import applicants from "../applicants.json";
-
 const { TabPane } = Tabs;
 
-export const Home = (props) => {
+const Home = (props) => {
+  const [tabKey, setTabKey] = useState("All");
+  const [selectedRow, setSelectedRow] = useState(null);
   const [deleteConfirmModal, showDeleteConfirmModal] = useState(false);
   const [moveConfirmModal, showMoveConfirmModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("all");
 
-  // const applicants = null;
+  const allApplicantsData = props.getApplicantsQuery.getApplicants;
 
-  const IconText = ({ icon, text }) => (
-    <Space>
-      {React.createElement(icon)}
-      {text}
-    </Space>
-  );
+  let applicantsData = [];
+
+  const allCount =
+    props.getApplicantsQuery &&
+    props.getApplicantsQuery.getApplicants &&
+    props.getApplicantsQuery.getApplicants.length;
+
+  const pendingCount =
+    (allApplicantsData &&
+      allApplicantsData.filter((applicant) => applicant.status === "pending")
+        .length) ||
+    0;
+  const savedCount =
+    (allApplicantsData &&
+      allApplicantsData.filter((applicant) => applicant.status === "saved")
+        .length) ||
+    0;
+  const rejectedCount =
+    (allApplicantsData &&
+      allApplicantsData.filter((applicant) => applicant.status === "rejected")
+        .length) ||
+    0;
+  const selectionsCount =
+    (allApplicantsData &&
+      allApplicantsData.filter(
+        (applicant) => applicant.category === "selections"
+      ).length) ||
+    0;
+  const backupsCount =
+    (allApplicantsData &&
+      allApplicantsData.filter((applicant) => applicant.category === "backups")
+        .length) ||
+    0;
+  const recosCount =
+    (allApplicantsData &&
+      allApplicantsData.filter((applicant) => applicant.category === "recos")
+        .length) ||
+    0;
+
+  switch (tabKey) {
+    case "All":
+      applicantsData = allApplicantsData;
+      break;
+
+    case "Pending":
+      applicantsData = allApplicantsData.filter(
+        (applicant) => applicant.status === "pending"
+      );
+      break;
+
+    case "Saved":
+      applicantsData = allApplicantsData.filter(
+        (applicant) => applicant.status === "saved"
+      );
+      break;
+
+    case "Rejected":
+      applicantsData = allApplicantsData.filter(
+        (applicant) => applicant.status === "rejected"
+      );
+      break;
+
+    case "Selections":
+      applicantsData = allApplicantsData.filter(
+        (applicant) => applicant.category === "selections"
+      );
+      break;
+
+    case "Backups":
+      applicantsData = allApplicantsData.filter(
+        (applicant) => applicant.category === "backups"
+      );
+      break;
+
+    case "Recos":
+      applicantsData = allApplicantsData.filter(
+        (applicant) => applicant.category === "recos"
+      );
+      break;
+
+    default:
+      break;
+  }
+
+  // console.log("APPLICANTS", applicantsData);
+
+  const IconText = ({ icon, text, id }) =>
+    text === "Delete" ? (
+      <Space
+        onClick={() => {
+          showDeleteConfirmModal(true);
+          setSelectedRow(id);
+        }}
+      >
+        <a href="#">
+          {React.createElement(icon)}
+          {text}
+        </a>
+      </Space>
+    ) : (
+      <Space>
+        {React.createElement(icon)}
+        {text}
+      </Space>
+    );
+
+  const btnDeleteApplicant = () => {
+    showDeleteConfirmModal(false);
+
+    let deleteApplicant = {
+      id: selectedRow,
+    };
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === selectedRow);
+
+    props.deleteApplicantMutation({
+      variables: deleteApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+
+    message.success(
+      `${findApplicant && findApplicant.name} has now been deleted!`
+    );
+  };
+
+  const btnSaveApplicant = async (e) => {
+    e.preventDefault();
+
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === e.target.id);
+
+    let saveApplicant = {
+      id: e.target.id.toString(),
+      status: "saved",
+    };
+
+    await props.saveOrRejectApplicantMutation({
+      variables: saveApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+
+    await message.success(
+      `${findApplicant && findApplicant.name}'s application has been saved!`
+    );
+  };
+
+  const btnRejectApplicant = async (e) => {
+    e.preventDefault();
+
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === e.target.id);
+
+    let rejectApplicant = {
+      id: e.target.id.toString(),
+      status: "rejected",
+    };
+
+    await props.saveOrRejectApplicantMutation({
+      variables: rejectApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+
+    await message.success(
+      `${findApplicant && findApplicant.name}'s application has been rejected!`
+    );
+  };
+
+  const btnMoveToSelections = async (e) => {
+    e.preventDefault();
+
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === e.target.id);
+
+    let moveApplicant = {
+      id: e.target.id.toString(),
+      category: "selections",
+    };
+
+    await props.moveApplicantMutation({
+      variables: moveApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+
+    await message.success(
+      `${findApplicant && findApplicant.name} has now been moved to Selections!`
+    );
+
+    await showMoveConfirmModal(false);
+  };
+
+  const btnMoveToBackups = async (e) => {
+    e.preventDefault();
+
+    console.log("BACKUPS", e.target.i);
+
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === e.target.id);
+
+    let moveApplicant = {
+      id: e.target.id.toString(),
+      category: "backups",
+    };
+
+    await props.moveApplicantMutation({
+      variables: moveApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+    await message.success(
+      `${findApplicant && findApplicant.name} has now been moved to Backups!`
+    );
+
+    await showMoveConfirmModal(false);
+  };
+
+  const btnMoveToRecos = async (e) => {
+    e.preventDefault();
+
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === e.target.id);
+
+    let moveApplicant = {
+      id: e.target.id.toString(),
+      category: "recos",
+    };
+
+    await props.moveApplicantMutation({
+      variables: moveApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+    await message.success(
+      `${findApplicant && findApplicant.name} has now been moved to Recos!`
+    );
+
+    await showMoveConfirmModal(false);
+  };
 
   return (
     <div
@@ -57,7 +325,7 @@ export const Home = (props) => {
         paddingRight: "20px",
       }}
     >
-      {!applicants ? (
+      {!allApplicantsData ? (
         <div
           style={{
             display: "flex",
@@ -99,193 +367,739 @@ export const Home = (props) => {
             </Col>
           </Row>
           <Row style={{ marginBottom: 50 }}>
-            {/* <h3>Filter By:</h3>
-            <div>
-              <Col style={{ paddingLeft: 30 }}>
-                <label className="radio">
-                  ALL
-                  <input
-                    type="radio"
-                    name="status"
-                    checked={selectedFilter === "all"}
-                    value="all"
-                    onChange={(e) => setSelectedFilter("all")}
-                  />
-                  <span className="checkmark"></span>
-                </label>
-                <label className="radio">
-                  PENDING
-                  <input
-                    type="radio"
-                    name="status"
-                    checked={selectedFilter === "pending"}
-                    value="pending"
-                    onChange={(e) => setSelectedFilter("pending")}
-                  />
-                  <span className="checkmark"></span>
-                </label>
-                <label className="radio">
-                  SAVED
-                  <input
-                    type="radio"
-                    name="status"
-                    checked={selectedFilter === "saved"}
-                    value="saved"
-                    onChange={(e) => setSelectedFilter("saved")}
-                  />
-                  <span className="checkmark"></span>
-                </label>
-                <label className="radio">
-                  REJECTED
-                  <input
-                    type="radio"
-                    name="status"
-                    checked={selectedFilter === "rejected"}
-                    value="rejected"
-                    onChange={(e) => setSelectedFilter("rejected")}
-                  />
-                  <span className="checkmark"></span>
-                </label>
-              </Col>
-            </div> */}
-            <Tabs style={{ width: "100%" }} defaultActiveKey="all" centered>
-              <TabPane tab="All" key="All">
-                <List
-                  itemLayout="vertical"
-                  size="small"
-                  pagination={{
-                    onChange: (page) => {
-                      console.log(page);
-                    },
-                    pageSize: 3,
-                  }}
-                  dataSource={applicants}
-                  renderItem={(applicant) => (
-                    <List.Item
-                      style={{ textAlign: "center" }}
-                      key={applicant.id}
-                      actions={[
-                        <Link to="/edit/1">
+            <Tabs
+              style={{ width: "100%" }}
+              defaultActiveKey="all"
+              onChange={(tabKey) => setTabKey(tabKey)}
+              centered
+            >
+              <TabPane tab={<span>All ({allCount})</span>} key="All">
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
                           <IconText
-                            icon={EditFilled}
-                            text="Edit"
-                            key="list-vertical-edit"
-                          />
-                        </Link>,
-                        <IconText
-                          icon={ForwardOutlined}
-                          text="Move To"
-                          key="list-vertical-move"
-                        />,
-                        <IconText
-                          icon={UserDeleteOutlined}
-                          text="Delete"
-                          key="list-vertical-delete"
-                        />,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        style={{ textAlign: "left" }}
-                        avatar={<Avatar size={80} icon={<UserOutlined />} />}
-                        title={<Link to="/view/1">{applicant.name}</Link>}
-                        description={
-                          <div>
-                            {applicant.username} <br /> {applicant.email}
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-                {/* {applicants.map((applicant) => {
-                  return (
-                    <Row
-                      key={applicant.id}
-                      style={{
-                        display: "flex",
-                        flex: 1,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Col span={20}>
-                        <Col style={{ float: "left" }}></Col>
-                        <Col>
-                          <h2>{applicant.name}</h2>
-                          <h4>@{applicant.username}</h4>
-                          <span>{applicant.email}</span>
-                        </Col>
-                        <Divider dashed />
-                      </Col>
-                      <Col>
-                        <Button type="primary" shape="circle" size="medium">
-                          <EditFilled />
-                        </Button>
-                        <Button
-                          type="primary"
-                          danger={true}
-                          shape="circle"
-                          size="medium"
-                          onClick={() => showDeleteConfirmModal(true)}
-                        >
-                          <UserDeleteOutlined />
-                        </Button>
-                        <br />
-                        <Button
-                          type="round"
-                          size="medium"
-                          onClick={() => showDeleteConfirmModal(true)}
-                          block
-                        >
-                          <ForwardOutlined />
-                        </Button>
-                      </Col>
-                    </Row>
-                  );
-                })} */}
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                              {applicant.status === "pending" ? (
+                                <div>
+                                  <Button onClick={btnSaveApplicant}>
+                                    <span id={applicant.id}>Save</span>
+                                  </Button>
+                                  <Button onClick={btnRejectApplicant}>
+                                    <span id={applicant.id}>Reject</span>
+                                  </Button>
+                                </div>
+                              ) : (
+                                ""
+                              )}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
-              <TabPane tab="Pending" key="Pending">
-                Content of Tab Pane Pending
+              <TabPane
+                tab={<span>Pending ({pendingCount})</span>}
+                key="Pending"
+              >
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
+                          <IconText
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                              <div>
+                                <Button onClick={btnSaveApplicant}>
+                                  <span id={applicant.id}>Save</span>
+                                </Button>
+                                <Button onClick={btnRejectApplicant}>
+                                  <span id={applicant.id}>Reject</span>
+                                </Button>
+                              </div>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
-              <TabPane tab="Saved" key="Saved">
-                Content of Tab Pane Saved
+              <TabPane tab={<span>Saved ({savedCount})</span>} key="Saved">
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
+                          <IconText
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
-              <TabPane tab="Rejected" key="Rejected">
-                Content of Tab Pane Rejected
+              <TabPane
+                tab={<span>Rejected ({rejectedCount})</span>}
+                key="Rejected"
+              >
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
+                          <IconText
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
-              <TabPane tab="Selections" key="Selections">
-                Content of Tab Pane Selections
+              <TabPane
+                tab={<span>Selections ({selectionsCount})</span>}
+                key="Selections"
+              >
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
+                          <IconText
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
-              <TabPane tab="Backups" key="Backups">
-                Content of Tab Pane Backups
+              <TabPane
+                tab={<span>Backups ({backupsCount})</span>}
+                key="Backups"
+              >
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
+                          <IconText
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
-              <TabPane tab="Recos" key="Recos">
-                Content of Tab Pane Recos
+              <TabPane tab={<span>Recos ({recosCount})</span>} key="Recos">
+                {applicantsData ? (
+                  <List
+                    itemLayout="vertical"
+                    size="small"
+                    pagination={{
+                      onChange: (page) => {
+                        console.log(page);
+                      },
+                      pageSize: 3,
+                    }}
+                    dataSource={applicantsData}
+                    renderItem={(applicant) => (
+                      <List.Item
+                        style={{ textAlign: "center" }}
+                        key={applicant.id}
+                        actions={[
+                          <Link to={`/applicant/${applicant.id}`}>
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={EditFilled}
+                              text="Edit"
+                              key="list-vertical-edit"
+                            />
+                          </Link>,
+                          <Dropdown
+                            id={applicant.id}
+                            key={applicant.id}
+                            overlay={
+                              <Menu>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToSelections} block>
+                                    <span id={applicant.id}>Selections</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToBackups} block>
+                                    <span id={applicant.id}>Backups</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <Button onClick={btnMoveToRecos} block>
+                                    <span id={applicant.id}>Recos</span>
+                                  </Button>
+                                </Menu.Item>
+                              </Menu>
+                            }
+                            trigger={["click"]}
+                            placement="topCenter"
+                          >
+                            <a href="#">
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={ForwardOutlined}
+                                text="Move To"
+                                key="list-vertical-move"
+                              />
+                            </a>
+                          </Dropdown>,
+                          <IconText
+                            id={applicant.id}
+                            name={applicant.name}
+                            icon={UserDeleteOutlined}
+                            text="Delete"
+                            key="list-vertical-delete"
+                          />,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          style={{ textAlign: "left" }}
+                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
+                          title={
+                            <Link to={`/applicant/${applicant.id}`}>
+                              {applicant.name}
+                            </Link>
+                          }
+                          description={
+                            <div>
+                              {applicant.username} <br /> {applicant.email}
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty />
+                )}
               </TabPane>
             </Tabs>
           </Row>
         </div>
       )}
-      <Modal
+      {/* <Modal
         title="Move Applicant"
         centered
         visible={moveConfirmModal}
-        onOk={() => showMoveConfirmModal(false)}
-        okButtonProps={{ danger: true, shape: "round" }}
+        footer={null}
         onCancel={() => showMoveConfirmModal(false)}
-        cancelButtonProps={{
-          style: { border: "none" },
-        }}
-        okText="Yes"
-        cancelText="No"
+        selectedRow={selectedRow}
       >
-        <p>Are you sure you want to Move this applicant?</p>
-      </Modal>
+        {applicantsData &&
+        applicantsData.find((applicant) => applicant.id === selectedRow) &&
+        applicantsData.find((applicant) => applicant.id === selectedRow)
+          .category === "selections" ? (
+          <div>
+            <Button value={selectedRow} onClick={btnMoveToBackups} block>
+              Backups
+            </Button>
+            <Button value={selectedRow} onClick={btnMoveToRecos} block>
+              Recos
+            </Button>
+          </div>
+        ) : applicantsData &&
+          applicantsData.find((applicant) => applicant.id === selectedRow) &&
+          applicantsData.find((applicant) => applicant.id === selectedRow)
+            .category === "backups" ? (
+          <div>
+            <Button value={selectedRow} onClick={btnMoveToSelections} block>
+              Selections
+            </Button>
+            <Button value={selectedRow} onClick={btnMoveToRecos} block>
+              Recos
+            </Button>
+          </div>
+        ) : applicantsData &&
+          applicantsData.find((applicant) => applicant.id === selectedRow) &&
+          applicantsData.find((applicant) => applicant.id === selectedRow)
+            .category === "recos" ? (
+          <div>
+            <Button value={selectedRow} onClick={btnMoveToSelections} block>
+              Selections
+            </Button>
+            <Button value={selectedRow} onClick={btnMoveToBackups} block>
+              Backups
+            </Button>
+          </div>
+        ) : (
+          ""
+        )}
+      </Modal> */}
 
       <Modal
         title="Delete Applicant"
         centered
         visible={deleteConfirmModal}
-        onOk={() => showDeleteConfirmModal(false)}
+        onOk={btnDeleteApplicant}
         okButtonProps={{ danger: true, shape: "round" }}
         onCancel={() => showDeleteConfirmModal(false)}
         cancelButtonProps={{
@@ -299,3 +1113,12 @@ export const Home = (props) => {
     </div>
   );
 };
+
+export default compose(
+  graphql(getApplicantsQuery, { name: "getApplicantsQuery" }),
+  graphql(saveOrRejectApplicantMutation, {
+    name: "saveOrRejectApplicantMutation",
+  }),
+  graphql(moveApplicantMutation, { name: "moveApplicantMutation" }),
+  graphql(deleteApplicantMutation, { name: "deleteApplicantMutation" })
+)(Home);

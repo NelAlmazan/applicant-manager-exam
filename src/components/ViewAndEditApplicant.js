@@ -1,36 +1,34 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "mapbox-gl-geocoder";
+import { Button, Layout, Label, Input, Form, message } from "antd";
+import { Link } from "react-router-dom";
 import { graphql } from "react-apollo";
 import { flowRight as compose, set } from "lodash";
 
 import {
-  Row,
-  Col,
-  Button,
-  Form,
-  Layout,
-  Select,
-  Input,
-  message,
-  Icon,
-  Divider,
-} from "antd";
+  moveApplicantMutation,
+  deleteApplicantMutation,
+  saveOrRejectApplicantMutation,
+  updateApplicantMutation,
+} from "../graphql/mutations";
 
-import { createApplicantMutation } from "../graphql/mutations";
-import { getApplicantsQuery } from "../graphql/queries";
+import { getApplicantQuery } from "../graphql/queries";
+
+const { Content } = Layout;
 
 const styles = {
   width: "100%",
   height: "20vh",
 };
 
-const { Content } = Layout;
-
-const AddApplicant = (props) => {
+const ViewAndEditApplicant = (props) => {
   const [map, setMap] = useState(null);
   const mapContainer = useRef(null);
+
+  const applicantData = props.getApplicantQuery.getApplicantById;
+
+  // console.log("APPLICANT DATA", applicantData);
 
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -40,21 +38,49 @@ const AddApplicant = (props) => {
   const [category, setCategory] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
-  const [placeName, setPlaceName] = useState(
-    "Pioneer Highlands, Madison, Mandaluyong, Metro Manila"
-  );
+  const [placeName, setPlaceName] = useState("");
+  const [currentLngLat, setCurrentLngLat] = useState([]);
+
+  // console.log(
+  //   "INITIAL DATA",
+  //   name,
+  //   username,
+  //   phone,
+  //   email,
+  //   placeName,
+  //   longitude,
+  //   latitude,
+  //   status,
+  //   category
+  // );
 
   useEffect(() => {
+    const setInitialValues = async () => {
+      await setName(applicantData && applicantData.name);
+      await setUsername(applicantData && applicantData.username);
+      await setPhone(applicantData && applicantData.phone);
+      await setEmail(applicantData && applicantData.email);
+      await setStatus(applicantData && applicantData.status);
+      await setCategory(applicantData && applicantData.category);
+      await setLatitude(applicantData && parseFloat(applicantData.lat));
+      await setLongitude(applicantData && parseFloat(applicantData.lng));
+      await setPlaceName(applicantData && applicantData.address);
+    };
+
+    setInitialValues();
+
     mapboxgl.accessToken =
       "pk.eyJ1IjoibmVsc2tpZHJlIiwiYSI6ImNrZmlnNjF0YjBndTkyeXBrcm1mYmIxeHEifQ.Ob0SZ1GqGlfWjD_Q0tOpLA";
 
     // const coordinates = document.getElementById("coordinates");
 
     const initializeMap = ({ setMap, mapContainer }) => {
+      console.log("LONG", longitude);
+      console.log("LAT", latitude);
       const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/streets-v11", // stylesheet location
-        center: [121.049095, 14.572186],
+        center: [longitude, latitude],
         zoom: 13,
       });
 
@@ -67,7 +93,7 @@ const AddApplicant = (props) => {
       });
 
       const marker = new mapboxgl.Marker({ draggable: true })
-        .setLngLat([121.049095, 14.572186])
+        .setLngLat([longitude, latitude])
         .addTo(map);
 
       map.addControl(geocoder);
@@ -103,6 +129,18 @@ const AddApplicant = (props) => {
         await setLatitude(map.getCenter().lat);
         await setLongitude(map.getCenter().lng);
       });
+
+      // const onDragEnd = async () => {
+      //   let lngLat = marker.getLngLat();
+      //   coordinates.style.display = "block";
+      //   coordinates.innerHTML =
+      //     "Longitude: " + lngLat.lng + "<br />longitude: " + lngLat.lat;
+
+      //   setLatitude(lngLat.lat);
+      //   setLongitude(lngLat.lng);
+      // };
+
+      // marker.on("dragend", onDragEnd);
     };
 
     if (!map) initializeMap({ setMap, mapContainer });
@@ -148,7 +186,7 @@ const AddApplicant = (props) => {
   const onFinish = async (e) => {
     e.preventDefault();
 
-    let createdApplicant = {
+    let updatedApplicant = {
       id: props.match.params.id,
       name: name,
       username: username,
@@ -161,17 +199,20 @@ const AddApplicant = (props) => {
       category: category,
     };
 
-    await props.createApplicantMutation({
-      variables: createdApplicant,
+    await props.updateApplicantMutation({
+      variables: updatedApplicant,
       refetchQueries: [
         {
-          query: getApplicantsQuery,
+          variables: {
+            id: props.match.params.id,
+          },
+          query: getApplicantQuery,
         },
       ],
     });
 
     await message.success(
-      `${name}'s Information has been successfully created!`
+      `${name}'s Information has been successfully updated!`
     );
     await props.history.push("/");
   };
@@ -200,13 +241,28 @@ const AddApplicant = (props) => {
             <Input name="phone" value={phone} onChange={inputHandler} />
 
             <label htmlFor="phone">Address:</label>
-            <Input name="address" value={placeName} disabled={true} />
+            <Input
+              name="address"
+              value={placeName}
+              onChange={inputHandler}
+              disabled={true}
+            />
 
             <label htmlFor="latitude">Latitude:</label>
-            <Input name="latitude" value={latitude} disabled={true} />
+            <Input
+              name="latitude"
+              value={latitude}
+              onChange={inputHandler}
+              disabled={true}
+            />
 
             <label htmlFor="longitude">Longitude:</label>
-            <Input name="longitude" value={longitude} disabled={true} />
+            <Input
+              name="longitude"
+              value={longitude}
+              onChange={inputHandler}
+              disabled={true}
+            />
             <div ref={(el) => (mapContainer.current = el)} style={styles} />
             {/* <pre
               id="coordinates"
@@ -242,6 +298,20 @@ const AddApplicant = (props) => {
 };
 
 export default compose(
-  graphql(createApplicantMutation, { name: "createApplicantMutation" }),
-  graphql(getApplicantsQuery, { name: "getApplicantsQuery" })
-)(AddApplicant);
+  graphql(saveOrRejectApplicantMutation, {
+    name: "saveOrRejectApplicantMutation",
+  }),
+  graphql(moveApplicantMutation, { name: "moveApplicantMutation" }),
+  graphql(deleteApplicantMutation, { name: "deleteApplicantMutation" }),
+  graphql(updateApplicantMutation, { name: "updateApplicantMutation" }),
+  graphql(getApplicantQuery, {
+    options: (props) => {
+      return {
+        variables: {
+          id: props.match.params.id,
+        },
+      };
+    },
+    name: "getApplicantQuery",
+  })
+)(ViewAndEditApplicant);
