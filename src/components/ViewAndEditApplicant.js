@@ -175,7 +175,6 @@ const ViewAndEditApplicant = (props) => {
   };
 
   const inputHandler = (e) => {
-    console.log(e.target.name);
     if (e.target.name === "name") {
       setName(e.target.value);
     } else if (e.target.name === "username") {

@@ -140,7 +140,7 @@ const Home = (props) => {
       break;
   }
 
-  console.log("APPLICANTS", applicantsData);
+  // console.log("APPLICANTS", applicantsData);
 
   const IconText = ({ icon, text, id }) =>
     text === "Delete" ? (
@@ -292,8 +292,6 @@ const Home = (props) => {
 
   const btnMoveToBackups = async (e) => {
     e.preventDefault();
-
-    console.log("BACKUPS", e.target.i);
 
     let findApplicant =
       applicantsData &&
