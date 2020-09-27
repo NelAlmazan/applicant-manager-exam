@@ -33,6 +33,8 @@ import {
   EditFilled,
   ForwardOutlined,
   SyncOutlined,
+  CheckOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 
 import "./Home.css";
@@ -43,7 +45,6 @@ const Home = (props) => {
   const [tabKey, setTabKey] = useState("All");
   const [selectedRow, setSelectedRow] = useState(null);
   const [deleteConfirmModal, showDeleteConfirmModal] = useState(false);
-  const [moveConfirmModal, showMoveConfirmModal] = useState(false);
 
   const allApplicantsData = props.getApplicantsQuery.getApplicants;
 
@@ -71,19 +72,24 @@ const Home = (props) => {
     0;
   const selectionsCount =
     (allApplicantsData &&
-      allApplicantsData.filter(
-        (applicant) => applicant.category === "selections"
-      ).length) ||
+      allApplicantsData
+        .filter((applicant) => applicant.status !== "rejected")
+        .filter((applicant) => applicant.status !== "pending")
+        .filter((applicant) => applicant.category === "selections").length) ||
     0;
   const backupsCount =
     (allApplicantsData &&
-      allApplicantsData.filter((applicant) => applicant.category === "backups")
-        .length) ||
+      allApplicantsData
+        .filter((applicant) => applicant.status !== "rejected")
+        .filter((applicant) => applicant.status !== "pending")
+        .filter((applicant) => applicant.category === "backups").length) ||
     0;
   const recosCount =
     (allApplicantsData &&
-      allApplicantsData.filter((applicant) => applicant.category === "recos")
-        .length) ||
+      allApplicantsData
+        .filter((applicant) => applicant.status !== "rejected")
+        .filter((applicant) => applicant.status !== "pending")
+        .filter((applicant) => applicant.category === "recos").length) ||
     0;
 
   switch (tabKey) {
@@ -110,28 +116,31 @@ const Home = (props) => {
       break;
 
     case "Selections":
-      applicantsData = allApplicantsData.filter(
-        (applicant) => applicant.category === "selections"
-      );
+      applicantsData = allApplicantsData
+        .filter((applicant) => applicant.status !== "rejected")
+        .filter((applicant) => applicant.status !== "pending")
+        .filter((applicant) => applicant.category === "selections");
       break;
 
     case "Backups":
-      applicantsData = allApplicantsData.filter(
-        (applicant) => applicant.category === "backups"
-      );
+      applicantsData = allApplicantsData
+        .filter((applicant) => applicant.status !== "rejected")
+        .filter((applicant) => applicant.status !== "pending")
+        .filter((applicant) => applicant.category === "backups");
       break;
 
     case "Recos":
-      applicantsData = allApplicantsData.filter(
-        (applicant) => applicant.category === "recos"
-      );
+      applicantsData = allApplicantsData
+        .filter((applicant) => applicant.status !== "rejected")
+        .filter((applicant) => applicant.status !== "pending")
+        .filter((applicant) => applicant.category === "recos");
       break;
 
     default:
       break;
   }
 
-  // console.log("APPLICANTS", applicantsData);
+  console.log("APPLICANTS", applicantsData);
 
   const IconText = ({ icon, text, id }) =>
     text === "Delete" ? (
@@ -229,6 +238,32 @@ const Home = (props) => {
     );
   };
 
+  const btnMoveToPending = async (e) => {
+    e.preventDefault();
+
+    let findApplicant =
+      applicantsData &&
+      applicantsData.find((applicant) => applicant.id === e.target.id);
+
+    let moveApplicant = {
+      id: e.target.id.toString(),
+      status: "pending",
+    };
+
+    await props.saveOrRejectApplicantMutation({
+      variables: moveApplicant,
+      refetchQueries: [
+        {
+          query: getApplicantsQuery,
+        },
+      ],
+    });
+
+    await message.success(
+      `${findApplicant && findApplicant.name} has now been moved to Pending!`
+    );
+  };
+
   const btnMoveToSelections = async (e) => {
     e.preventDefault();
 
@@ -253,8 +288,6 @@ const Home = (props) => {
     await message.success(
       `${findApplicant && findApplicant.name} has now been moved to Selections!`
     );
-
-    await showMoveConfirmModal(false);
   };
 
   const btnMoveToBackups = async (e) => {
@@ -282,8 +315,6 @@ const Home = (props) => {
     await message.success(
       `${findApplicant && findApplicant.name} has now been moved to Backups!`
     );
-
-    await showMoveConfirmModal(false);
   };
 
   const btnMoveToRecos = async (e) => {
@@ -309,8 +340,6 @@ const Home = (props) => {
     await message.success(
       `${findApplicant && findApplicant.name} has now been moved to Recos!`
     );
-
-    await showMoveConfirmModal(false);
   };
 
   return (
@@ -369,7 +398,7 @@ const Home = (props) => {
           <Row style={{ marginBottom: 50 }}>
             <Tabs
               style={{ width: "100%" }}
-              defaultActiveKey="all"
+              defaultActiveKey="All"
               onChange={(tabKey) => setTabKey(tabKey)}
               centered
             >
@@ -385,92 +414,307 @@ const Home = (props) => {
                       pageSize: 3,
                     }}
                     dataSource={applicantsData}
-                    renderItem={(applicant) => (
-                      <List.Item
-                        style={{ textAlign: "center" }}
-                        key={applicant.id}
-                        actions={[
-                          <Link to={`/applicant/${applicant.id}`}>
-                            <IconText
-                              id={applicant.id}
-                              name={applicant.name}
-                              icon={EditFilled}
-                              text="Edit"
-                              key="list-vertical-edit"
-                            />
-                          </Link>,
-                          <Dropdown
-                            id={applicant.id}
-                            key={applicant.id}
-                            overlay={
-                              <Menu>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToSelections} block>
-                                    <span id={applicant.id}>Selections</span>
-                                  </Button>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToBackups} block>
-                                    <span id={applicant.id}>Backups</span>
-                                  </Button>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToRecos} block>
-                                    <span id={applicant.id}>Recos</span>
-                                  </Button>
-                                </Menu.Item>
-                              </Menu>
-                            }
-                            trigger={["click"]}
-                            placement="topCenter"
-                          >
-                            <a href="#">
+                    renderItem={(applicant) =>
+                      applicant.status === "pending" ||
+                      applicant.status === "rejected" ? (
+                        <List.Item
+                          style={{ textAlign: "center" }}
+                          key={applicant.id}
+                          actions={[
+                            <Link to={`/applicant/${applicant.id}`}>
                               <IconText
                                 id={applicant.id}
                                 name={applicant.name}
-                                icon={ForwardOutlined}
-                                text="Move To"
-                                key="list-vertical-move"
+                                icon={EditFilled}
+                                text="Edit"
+                                key="list-vertical-edit"
                               />
-                            </a>
-                          </Dropdown>,
-                          <IconText
-                            id={applicant.id}
-                            name={applicant.name}
-                            icon={UserDeleteOutlined}
-                            text="Delete"
-                            key="list-vertical-delete"
-                          />,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          style={{ textAlign: "left" }}
-                          avatar={<Avatar size={80} icon={<UserOutlined />} />}
-                          title={
+                            </Link>,
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={UserDeleteOutlined}
+                              text="Delete"
+                              key="list-vertical-delete"
+                            />,
+                          ]}
+                        >
+                          <List.Item.Meta
+                            style={{ textAlign: "left" }}
+                            avatar={
+                              <Avatar size={80} icon={<UserOutlined />} />
+                            }
+                            title={
+                              <Link to={`/applicant/${applicant.id}`}>
+                                {applicant.name}
+                              </Link>
+                            }
+                            description={
+                              <div>
+                                <Row
+                                  style={{
+                                    display: "flex",
+                                    flex: 1,
+                                    justifyContent: "space-between",
+                                  }}
+                                >
+                                  <Col>
+                                    {applicant.username} <br />{" "}
+                                    {applicant.email}
+                                  </Col>
+                                  {applicant.status === "rejected" ||
+                                  applicant.status === "pending" ? (
+                                    <Col
+                                      style={{
+                                        textAlign: "right",
+                                      }}
+                                    >
+                                      <h5>
+                                        Status:{" "}
+                                        <span
+                                          style={{
+                                            textTransform: "capitalize",
+                                          }}
+                                        >
+                                          {applicant.status === "rejected" ? (
+                                            <span style={{ color: "#d52735" }}>
+                                              {applicant.status}
+                                            </span>
+                                          ) : (
+                                            <span style={{ color: "#2798ee" }}>
+                                              {applicant.status}
+                                            </span>
+                                          )}
+                                        </span>
+                                      </h5>
+                                    </Col>
+                                  ) : (
+                                    <Col
+                                      style={{
+                                        textAlign: "right",
+                                      }}
+                                    >
+                                      <h5>
+                                        Status:{" "}
+                                        <span
+                                          style={{
+                                            textTransform: "capitalize",
+                                          }}
+                                        >
+                                          <span style={{ color: "#36c770" }}>
+                                            {applicant.status}
+                                          </span>
+                                        </span>
+                                      </h5>
+                                      <h5>
+                                        Category:{" "}
+                                        <span
+                                          style={{
+                                            textTransform: "capitalize",
+                                          }}
+                                        >
+                                          {applicant.category}
+                                        </span>
+                                      </h5>
+                                    </Col>
+                                  )}
+                                </Row>
+                                {applicant.status === "pending" ? (
+                                  <div>
+                                    <Button
+                                      shape="round"
+                                      onClick={btnSaveApplicant}
+                                      className="save"
+                                    >
+                                      <span id={applicant.id}>
+                                        Save <CheckOutlined />
+                                      </span>
+                                    </Button>
+                                    <Button
+                                      shape="round"
+                                      onClick={btnRejectApplicant}
+                                      className="reject"
+                                    >
+                                      <span id={applicant.id}>
+                                        Reject <CloseOutlined />
+                                      </span>
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  ""
+                                )}
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      ) : (
+                        <List.Item
+                          style={{ textAlign: "center" }}
+                          key={applicant.id}
+                          actions={[
                             <Link to={`/applicant/${applicant.id}`}>
-                              {applicant.name}
-                            </Link>
-                          }
-                          description={
-                            <div>
-                              {applicant.username} <br /> {applicant.email}
-                              {applicant.status === "pending" ? (
-                                <div>
-                                  <Button onClick={btnSaveApplicant}>
-                                    <span id={applicant.id}>Save</span>
-                                  </Button>
-                                  <Button onClick={btnRejectApplicant}>
-                                    <span id={applicant.id}>Reject</span>
-                                  </Button>
-                                </div>
-                              ) : (
-                                ""
-                              )}
-                            </div>
-                          }
-                        />
-                      </List.Item>
-                    )}
+                              <IconText
+                                id={applicant.id}
+                                name={applicant.name}
+                                icon={EditFilled}
+                                text="Edit"
+                                key="list-vertical-edit"
+                              />
+                            </Link>,
+                            <Dropdown
+                              id={applicant.id}
+                              key={applicant.id}
+                              overlay={
+                                <Menu>
+                                  <Menu.Item>
+                                    <Button onClick={btnMoveToSelections} block>
+                                      <span id={applicant.id}>Selections</span>
+                                    </Button>
+                                  </Menu.Item>
+                                  <Menu.Item>
+                                    <Button onClick={btnMoveToBackups} block>
+                                      <span id={applicant.id}>Backups</span>
+                                    </Button>
+                                  </Menu.Item>
+                                  <Menu.Item>
+                                    <Button onClick={btnMoveToRecos} block>
+                                      <span id={applicant.id}>Recos</span>
+                                    </Button>
+                                  </Menu.Item>
+                                </Menu>
+                              }
+                              trigger={["click"]}
+                              placement="topCenter"
+                            >
+                              <a href="#">
+                                <IconText
+                                  id={applicant.id}
+                                  name={applicant.name}
+                                  icon={ForwardOutlined}
+                                  text="Move To"
+                                  key="list-vertical-move"
+                                />
+                              </a>
+                            </Dropdown>,
+                            <IconText
+                              id={applicant.id}
+                              name={applicant.name}
+                              icon={UserDeleteOutlined}
+                              text="Delete"
+                              key="list-vertical-delete"
+                            />,
+                          ]}
+                        >
+                          <List.Item.Meta
+                            style={{ textAlign: "left" }}
+                            avatar={
+                              <Avatar size={80} icon={<UserOutlined />} />
+                            }
+                            title={
+                              <Link to={`/applicant/${applicant.id}`}>
+                                {applicant.name}
+                              </Link>
+                            }
+                            description={
+                              <div>
+                                <Row
+                                  style={{
+                                    display: "flex",
+                                    flex: 1,
+                                    justifyContent: "space-between",
+                                  }}
+                                >
+                                  <Col>
+                                    {applicant.username} <br />{" "}
+                                    {applicant.email}
+                                  </Col>
+                                  {applicant.status === "rejected" ||
+                                  applicant.status === "pending" ? (
+                                    <Col
+                                      style={{
+                                        textAlign: "right",
+                                      }}
+                                    >
+                                      <h5>
+                                        Status:{" "}
+                                        <span
+                                          style={{
+                                            textTransform: "capitalize",
+                                          }}
+                                        >
+                                          {applicant.status === "rejected" ? (
+                                            <span style={{ color: "#d52735" }}>
+                                              {applicant.status}
+                                            </span>
+                                          ) : (
+                                            <span style={{ color: "#2798ee" }}>
+                                              {applicant.status}
+                                            </span>
+                                          )}
+                                        </span>
+                                      </h5>
+                                    </Col>
+                                  ) : (
+                                    <Col
+                                      style={{
+                                        textAlign: "right",
+                                      }}
+                                    >
+                                      <h5>
+                                        Status:{" "}
+                                        <span
+                                          style={{
+                                            textTransform: "capitalize",
+                                          }}
+                                        >
+                                          <span style={{ color: "#36c770" }}>
+                                            {applicant.status}
+                                          </span>
+                                        </span>
+                                      </h5>
+                                      <h5>
+                                        Category:{" "}
+                                        <span
+                                          style={{
+                                            textTransform: "capitalize",
+                                          }}
+                                        >
+                                          {applicant.category}
+                                        </span>
+                                      </h5>
+                                    </Col>
+                                  )}
+                                </Row>
+                                {applicant.status === "pending" ? (
+                                  <div>
+                                    <Button
+                                      shape="round"
+                                      onClick={btnSaveApplicant}
+                                      className="save"
+                                    >
+                                      <span id={applicant.id}>
+                                        Save <CheckOutlined />
+                                      </span>
+                                    </Button>
+                                    <Button
+                                      shape="round"
+                                      onClick={btnRejectApplicant}
+                                      className="reject"
+                                    >
+                                      <span id={applicant.id}>
+                                        Reject <CloseOutlined />
+                                      </span>
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  ""
+                                )}
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      )
+                    }
                   />
                 ) : (
                   <Empty />
@@ -505,41 +749,6 @@ const Home = (props) => {
                               key="list-vertical-edit"
                             />
                           </Link>,
-                          <Dropdown
-                            id={applicant.id}
-                            key={applicant.id}
-                            overlay={
-                              <Menu>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToSelections} block>
-                                    <span id={applicant.id}>Selections</span>
-                                  </Button>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToBackups} block>
-                                    <span id={applicant.id}>Backups</span>
-                                  </Button>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToRecos} block>
-                                    <span id={applicant.id}>Recos</span>
-                                  </Button>
-                                </Menu.Item>
-                              </Menu>
-                            }
-                            trigger={["click"]}
-                            placement="topCenter"
-                          >
-                            <a href="#">
-                              <IconText
-                                id={applicant.id}
-                                name={applicant.name}
-                                icon={ForwardOutlined}
-                                text="Move To"
-                                key="list-vertical-move"
-                              />
-                            </a>
-                          </Dropdown>,
                           <IconText
                             id={applicant.id}
                             name={applicant.name}
@@ -561,11 +770,23 @@ const Home = (props) => {
                             <div>
                               {applicant.username} <br /> {applicant.email}
                               <div>
-                                <Button onClick={btnSaveApplicant}>
-                                  <span id={applicant.id}>Save</span>
+                                <Button
+                                  shape="round"
+                                  onClick={btnSaveApplicant}
+                                  className="save"
+                                >
+                                  <span id={applicant.id}>
+                                    Save <CheckOutlined />
+                                  </span>
                                 </Button>
-                                <Button onClick={btnRejectApplicant}>
-                                  <span id={applicant.id}>Reject</span>
+                                <Button
+                                  shape="round"
+                                  onClick={btnRejectApplicant}
+                                  className="reject"
+                                >
+                                  <span id={applicant.id}>
+                                    Reject <CloseOutlined />
+                                  </span>
                                 </Button>
                               </div>
                             </div>
@@ -610,6 +831,11 @@ const Home = (props) => {
                             overlay={
                               <Menu>
                                 <Menu.Item>
+                                  <Button onClick={btnRejectApplicant} block>
+                                    <span id={applicant.id}>Rejected</span>
+                                  </Button>
+                                </Menu.Item>
+                                <Menu.Item>
                                   <Button onClick={btnMoveToSelections} block>
                                     <span id={applicant.id}>Selections</span>
                                   </Button>
@@ -658,7 +884,31 @@ const Home = (props) => {
                           }
                           description={
                             <div>
-                              {applicant.username} <br /> {applicant.email}
+                              <Row
+                                style={{
+                                  display: "flex",
+                                  flex: 1,
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Col>
+                                  {applicant.username} <br /> {applicant.email}
+                                </Col>
+                                <Col
+                                  style={{
+                                    textAlign: "right",
+                                  }}
+                                >
+                                  <h5>
+                                    Category:{" "}
+                                    <span
+                                      style={{ textTransform: "capitalize" }}
+                                    >
+                                      {applicant.category}
+                                    </span>
+                                  </h5>
+                                </Col>
+                              </Row>
                             </div>
                           }
                         />
@@ -704,18 +954,13 @@ const Home = (props) => {
                             overlay={
                               <Menu>
                                 <Menu.Item>
-                                  <Button onClick={btnMoveToSelections} block>
-                                    <span id={applicant.id}>Selections</span>
+                                  <Button onClick={btnMoveToPending} block>
+                                    <span id={applicant.id}>Pending</span>
                                   </Button>
                                 </Menu.Item>
                                 <Menu.Item>
-                                  <Button onClick={btnMoveToBackups} block>
-                                    <span id={applicant.id}>Backups</span>
-                                  </Button>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <Button onClick={btnMoveToRecos} block>
-                                    <span id={applicant.id}>Recos</span>
+                                  <Button onClick={btnSaveApplicant} block>
+                                    <span id={applicant.id}>Saved</span>
                                   </Button>
                                 </Menu.Item>
                               </Menu>

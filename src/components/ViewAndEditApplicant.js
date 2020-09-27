@@ -55,16 +55,16 @@ const ViewAndEditApplicant = (props) => {
   // );
 
   useEffect(() => {
-    const setInitialValues = async () => {
-      await setName(applicantData && applicantData.name);
-      await setUsername(applicantData && applicantData.username);
-      await setPhone(applicantData && applicantData.phone);
-      await setEmail(applicantData && applicantData.email);
-      await setStatus(applicantData && applicantData.status);
-      await setCategory(applicantData && applicantData.category);
-      await setLatitude(applicantData && parseFloat(applicantData.lat));
-      await setLongitude(applicantData && parseFloat(applicantData.lng));
-      await setPlaceName(applicantData && applicantData.address);
+    const setInitialValues = () => {
+      setName(applicantData && applicantData.name);
+      setUsername(applicantData && applicantData.username);
+      setPhone(applicantData && applicantData.phone);
+      setEmail(applicantData && applicantData.email);
+      setStatus(applicantData && applicantData.status);
+      setCategory(applicantData && applicantData.category);
+      setLatitude(applicantData && parseFloat(applicantData.lat));
+      setLongitude(applicantData && parseFloat(applicantData.lng));
+      setPlaceName(applicantData && applicantData.address);
     };
 
     setInitialValues();
@@ -72,28 +72,21 @@ const ViewAndEditApplicant = (props) => {
     mapboxgl.accessToken =
       "pk.eyJ1IjoibmVsc2tpZHJlIiwiYSI6ImNrZmlnNjF0YjBndTkyeXBrcm1mYmIxeHEifQ.Ob0SZ1GqGlfWjD_Q0tOpLA";
 
-    // const coordinates = document.getElementById("coordinates");
-
     const initializeMap = ({ setMap, mapContainer }) => {
-      console.log("LONG", longitude);
-      console.log("LAT", latitude);
       const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/streets-v11", // stylesheet location
-        center: [longitude, latitude],
+        center: [121.050058, 14.571801],
         zoom: 13,
       });
 
       const geocoder = new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,
-        marker: {
-          color: "orange",
-        },
         mapboxgl: mapboxgl,
       });
 
-      const marker = new mapboxgl.Marker({ draggable: true })
-        .setLngLat([longitude, latitude])
+      const marker = new mapboxgl.Marker({ draggable: false, color: "purple" })
+        .setLngLat([121.050058, 14.571801])
         .addTo(map);
 
       map.addControl(geocoder);
@@ -119,16 +112,26 @@ const ViewAndEditApplicant = (props) => {
         map.resize();
       });
 
-      map.on("move", async () => {
-        geocoder.on("result", function (e) {
-          map.getSource("single-point").setData(e.result.geometry);
-          setLatitude(e.result.center[1]);
-          setLongitude(e.result.center[0]);
-          setPlaceName(e.result.place_name);
-        });
-        await setLatitude(map.getCenter().lat);
-        await setLongitude(map.getCenter().lng);
-      });
+      // map.on("move", async () => {
+      //   await setLatitude(map.getCenter().lat);
+      //   await setLongitude(map.getCenter().lng);
+      // });
+
+      // map.on("drag", () => {
+      //   map.addSource("single-point-drag", {
+      //     type: "geojson",
+      //     data: {
+      //       type: "FeatureCollection",
+      //       features: [],
+      //     },
+      //   });
+      //   geocoder.on("result", function (e) {
+      //     map.getSource("single-point-drag").setData(e.result.geometry);
+      //     setLatitude(e.result.center[1]);
+      //     setLongitude(e.result.center[0]);
+      //     setPlaceName(e.result.place_name);
+      //   });
+      // });
 
       // const onDragEnd = async () => {
       //   let lngLat = marker.getLngLat();
@@ -140,7 +143,12 @@ const ViewAndEditApplicant = (props) => {
       //   setLongitude(lngLat.lng);
       // };
 
-      // marker.on("dragend", onDragEnd);
+      // marker.on("drag", async (e) => {
+      //   let lngLat = marker.getLngLat();
+      //   await setLatitude(lngLat.lat);
+      //   await setLongitude(lngLat.lng);
+      //   await marker.setLngLat([longitude, latitude]);
+      // });
     };
 
     if (!map) initializeMap({ setMap, mapContainer });
@@ -183,8 +191,9 @@ const ViewAndEditApplicant = (props) => {
     }
   };
 
-  const onFinish = async (e) => {
+  const onFinish = (e) => {
     e.preventDefault();
+    e.stopPropagation();
 
     let updatedApplicant = {
       id: props.match.params.id,
@@ -199,7 +208,7 @@ const ViewAndEditApplicant = (props) => {
       category: category,
     };
 
-    await props.updateApplicantMutation({
+    props.updateApplicantMutation({
       variables: updatedApplicant,
       refetchQueries: [
         {
@@ -211,10 +220,8 @@ const ViewAndEditApplicant = (props) => {
       ],
     });
 
-    await message.success(
-      `${name}'s Information has been successfully updated!`
-    );
-    await props.history.push("/");
+    message.success(`${name}'s Information has been successfully updated!`);
+    props.history.push("/");
   };
 
   return (
@@ -241,6 +248,14 @@ const ViewAndEditApplicant = (props) => {
             <Input name="phone" value={phone} onChange={inputHandler} />
 
             <label htmlFor="phone">Address:</label>
+            <p>
+              <small>
+                (Use the map's search bar to look for coordinates or place name)
+              </small>
+            </p>
+            <div ref={(el) => (mapContainer.current = el)} style={styles} />
+
+            <label htmlFor="phone">Address:</label>
             <Input
               name="address"
               value={placeName}
@@ -263,7 +278,7 @@ const ViewAndEditApplicant = (props) => {
               onChange={inputHandler}
               disabled={true}
             />
-            <div ref={(el) => (mapContainer.current = el)} style={styles} />
+
             {/* <pre
               id="coordinates"
               // ref={(el) => (mapContainer.coordinates = el)}

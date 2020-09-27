@@ -36,10 +36,8 @@ const AddApplicant = (props) => {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("");
-  const [category, setCategory] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState(14.571801);
+  const [longitude, setLongitude] = useState(121.050058);
   const [placeName, setPlaceName] = useState(
     "Pioneer Highlands, Madison, Mandaluyong, Metro Manila"
   );
@@ -48,26 +46,21 @@ const AddApplicant = (props) => {
     mapboxgl.accessToken =
       "pk.eyJ1IjoibmVsc2tpZHJlIiwiYSI6ImNrZmlnNjF0YjBndTkyeXBrcm1mYmIxeHEifQ.Ob0SZ1GqGlfWjD_Q0tOpLA";
 
-    // const coordinates = document.getElementById("coordinates");
-
     const initializeMap = ({ setMap, mapContainer }) => {
       const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/streets-v11", // stylesheet location
-        center: [121.049095, 14.572186],
+        center: [121.050058, 14.571801],
         zoom: 13,
       });
 
       const geocoder = new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,
-        marker: {
-          color: "orange",
-        },
         mapboxgl: mapboxgl,
       });
 
-      const marker = new mapboxgl.Marker({ draggable: true })
-        .setLngLat([121.049095, 14.572186])
+      const marker = new mapboxgl.Marker({ draggable: false, color: "purple" })
+        .setLngLat([121.050058, 14.571801])
         .addTo(map);
 
       map.addControl(geocoder);
@@ -91,17 +84,6 @@ const AddApplicant = (props) => {
 
         setMap(map);
         map.resize();
-      });
-
-      map.on("move", async () => {
-        geocoder.on("result", function (e) {
-          map.getSource("single-point").setData(e.result.geometry);
-          setLatitude(e.result.center[1]);
-          setLongitude(e.result.center[0]);
-          setPlaceName(e.result.place_name);
-        });
-        await setLatitude(map.getCenter().lat);
-        await setLongitude(map.getCenter().lng);
       });
     };
 
@@ -138,14 +120,10 @@ const AddApplicant = (props) => {
       setPhone(e.target.value);
     } else if (e.target.name === "email") {
       setEmail(e.target.value);
-    } else if (e.target.name === "status") {
-      setStatus(e.target.value);
-    } else if (e.target.name === "category") {
-      setCategory(e.target.value);
     }
   };
 
-  const onFinish = async (e) => {
+  const onFinish = (e) => {
     e.preventDefault();
 
     let createdApplicant = {
@@ -157,11 +135,11 @@ const AddApplicant = (props) => {
       address: placeName,
       lat: latitude.toFixed(4),
       lng: longitude.toFixed(4),
-      status: status,
-      category: category,
+      status: "pending",
+      category: null,
     };
 
-    await props.createApplicantMutation({
+    props.createApplicantMutation({
       variables: createdApplicant,
       refetchQueries: [
         {
@@ -170,10 +148,8 @@ const AddApplicant = (props) => {
       ],
     });
 
-    await message.success(
-      `${name}'s Information has been successfully created!`
-    );
-    await props.history.push("/");
+    message.success(`${name}'s Information has been successfully created!`);
+    props.history.push("/");
   };
 
   return (

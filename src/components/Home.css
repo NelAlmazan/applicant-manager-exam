@@ -69,3 +69,19 @@
   -ms-transform: rotate(45deg);
   transform: rotate(45deg);
 }
+
+.save {
+  padding: 5px 15px;
+  min-width: 100px;
+  color: #028010;
+  background-color: #e6fff1;
+  border: 1px solid #78d89f;
+}
+
+.reject {
+  padding: 5px 15px;
+  min-width: 100px;
+  color: #a80f1b;
+  background-color: #fef3f3;
+  border: 1px solid #f5a2a6;
+}

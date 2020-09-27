@@ -8,7 +8,7 @@ import AddApplicant from "./components/AddApplicant";
 import ViewAndEditApplicant from "./components/ViewAndEditApplicant";
 
 const client = new ApolloClient({
-  uri: "http://localhost:4000/playground",
+  uri: "http://applicant-manager-api.herokuapp.com/playground",
 });
 
 function App() {
