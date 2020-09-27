@@ -16,7 +16,6 @@ import {
   Row,
   Col,
   Dropdown,
-  Spin,
   Button,
   Modal,
   Menu,
@@ -49,7 +48,7 @@ const Home = (props) => {
 
   let applicantsData = [];
 
-  console.log("LOADING", props.saveOrRejectApplicantMutation.loading);
+  // console.log("LOADING", props.saveOrRejectApplicantMutation.loading);
 
   const allCount =
     props.getApplicantsQuery &&
@@ -151,10 +150,10 @@ const Home = (props) => {
           setSelectedRow(id);
         }}
       >
-        <a href="#">
+        <Button type="link">
           {React.createElement(icon)}
           {text}
-        </a>
+        </Button>
       </Space>
     ) : (
       <Space>
@@ -602,7 +601,7 @@ const Home = (props) => {
                               trigger={["click"]}
                               placement="topCenter"
                             >
-                              <a href="#">
+                              <Button type="link">
                                 <IconText
                                   id={applicant.id}
                                   name={applicant.name}
@@ -610,7 +609,7 @@ const Home = (props) => {
                                   text="Move To"
                                   key="list-vertical-move"
                                 />
-                              </a>
+                              </Button>
                             </Dropdown>,
                             <IconText
                               id={applicant.id}
@@ -897,7 +896,7 @@ const Home = (props) => {
                             trigger={["click"]}
                             placement="topCenter"
                           >
-                            <a href="#">
+                            <Button type="link">
                               <IconText
                                 id={applicant.id}
                                 name={applicant.name}
@@ -905,7 +904,7 @@ const Home = (props) => {
                                 text="Move To"
                                 key="list-vertical-move"
                               />
-                            </a>
+                            </Button>
                           </Dropdown>,
                           <IconText
                             id={applicant.id}
@@ -1010,7 +1009,7 @@ const Home = (props) => {
                             trigger={["click"]}
                             placement="topCenter"
                           >
-                            <a href="#">
+                            <Button type="link">
                               <IconText
                                 id={applicant.id}
                                 name={applicant.name}
@@ -1018,7 +1017,7 @@ const Home = (props) => {
                                 text="Move To"
                                 key="list-vertical-move"
                               />
-                            </a>
+                            </Button>
                           </Dropdown>,
                           <IconText
                             id={applicant.id}
@@ -1104,7 +1103,7 @@ const Home = (props) => {
                             trigger={["click"]}
                             placement="topCenter"
                           >
-                            <a href="#">
+                            <Button type="link">
                               <IconText
                                 id={applicant.id}
                                 name={applicant.name}
@@ -1112,7 +1111,7 @@ const Home = (props) => {
                                 text="Move To"
                                 key="list-vertical-move"
                               />
-                            </a>
+                            </Button>
                           </Dropdown>,
                           <IconText
                             id={applicant.id}
@@ -1198,7 +1197,7 @@ const Home = (props) => {
                             trigger={["click"]}
                             placement="topCenter"
                           >
-                            <a href="#">
+                            <Button type="link">
                               <IconText
                                 id={applicant.id}
                                 name={applicant.name}
@@ -1206,7 +1205,7 @@ const Home = (props) => {
                                 text="Move To"
                                 key="list-vertical-move"
                               />
-                            </a>
+                            </Button>
                           </Dropdown>,
                           <IconText
                             id={applicant.id}
@@ -1289,7 +1288,7 @@ const Home = (props) => {
                             trigger={["click"]}
                             placement="topCenter"
                           >
-                            <a href="#">
+                            <Button type="link">
                               <IconText
                                 id={applicant.id}
                                 name={applicant.name}
@@ -1297,7 +1296,7 @@ const Home = (props) => {
                                 text="Move To"
                                 key="list-vertical-move"
                               />
-                            </a>
+                            </Button>
                           </Dropdown>,
                           <IconText
                             id={applicant.id}

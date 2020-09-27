@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "mapbox-gl-geocoder";
 import { graphql } from "react-apollo";
-import { flowRight as compose, set } from "lodash";
+import { flowRight as compose } from "lodash";
 
 import { Button, Layout, Input, message, Spin } from "antd";
 
@@ -78,26 +78,6 @@ const AddApplicant = (props) => {
 
     if (!map) initializeMap({ setMap, mapContainer });
   }, [map]);
-
-  const layout = {
-    labelCol: {
-      span: 4,
-    },
-    wrapperCol: {
-      span: 20,
-    },
-  };
-
-  const validateMessages = {
-    required: "'${label}' is required!",
-    types: {
-      email: "'${label}' is not a valid email!",
-      number: "'${label}' is not a valid number!",
-    },
-    number: {
-      range: "'${label}' must be between '${min}' and '${max}'",
-    },
-  };
 
   const inputHandler = (e) => {
     if (e.target.name === "name") {
