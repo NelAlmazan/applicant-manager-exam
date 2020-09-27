@@ -49,7 +49,7 @@ const Home = (props) => {
 
   let applicantsData = [];
 
-  console.log("LOADING", props.getApplicantsQuery);
+  console.log("LOADING", props.saveOrRejectApplicantMutation.loading);
 
   const allCount =
     props.getApplicantsQuery &&
@@ -515,7 +515,7 @@ const Home = (props) => {
                                             textTransform: "capitalize",
                                           }}
                                         >
-                                          {applicant.category}
+                                          {applicant.category || "none"}
                                         </span>
                                       </h5>
                                     </Col>
@@ -533,6 +533,10 @@ const Home = (props) => {
                                       shape="round"
                                       onClick={btnSaveApplicant}
                                       className="save"
+                                      loading={
+                                        props.saveOrRejectApplicantMutation
+                                          .loading
+                                      }
                                     >
                                       <span id={applicant.id}>
                                         Save <CheckOutlined />
@@ -542,6 +546,10 @@ const Home = (props) => {
                                       shape="round"
                                       onClick={btnRejectApplicant}
                                       className="reject"
+                                      loading={
+                                        props.saveOrRejectApplicantMutation
+                                          .loading
+                                      }
                                     >
                                       <span id={applicant.id}>
                                         Reject <CloseOutlined />
@@ -687,18 +695,28 @@ const Home = (props) => {
                                             textTransform: "capitalize",
                                           }}
                                         >
-                                          {applicant.category}
+                                          {applicant.category || "none"}
                                         </span>
                                       </h5>
                                     </Col>
                                   )}
                                 </Row>
                                 {applicant.status === "pending" ? (
-                                  <div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flex: 1,
+                                      justifyContent: "flex-end",
+                                    }}
+                                  >
                                     <Button
                                       shape="round"
                                       onClick={btnSaveApplicant}
                                       className="save"
+                                      loading={
+                                        props.saveOrRejectApplicantMutation
+                                          .loading
+                                      }
                                     >
                                       <span id={applicant.id}>
                                         Save <CheckOutlined />
@@ -708,6 +726,10 @@ const Home = (props) => {
                                       shape="round"
                                       onClick={btnRejectApplicant}
                                       className="reject"
+                                      loading={
+                                        props.saveOrRejectApplicantMutation
+                                          .loading
+                                      }
                                     >
                                       <span id={applicant.id}>
                                         Reject <CloseOutlined />
@@ -777,11 +799,20 @@ const Home = (props) => {
                           description={
                             <div>
                               {applicant.username} <br /> {applicant.email}
-                              <div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flex: 1,
+                                  justifyContent: "flex-end",
+                                }}
+                              >
                                 <Button
                                   shape="round"
                                   onClick={btnSaveApplicant}
                                   className="save"
+                                  loading={
+                                    props.saveOrRejectApplicantMutation.loading
+                                  }
                                 >
                                   <span id={applicant.id}>
                                     Save <CheckOutlined />
@@ -791,6 +822,9 @@ const Home = (props) => {
                                   shape="round"
                                   onClick={btnRejectApplicant}
                                   className="reject"
+                                  loading={
+                                    props.saveOrRejectApplicantMutation.loading
+                                  }
                                 >
                                   <span id={applicant.id}>
                                     Reject <CloseOutlined />
@@ -912,7 +946,7 @@ const Home = (props) => {
                                     <span
                                       style={{ textTransform: "capitalize" }}
                                     >
-                                      {applicant.category}
+                                      {applicant.category || "none"}
                                     </span>
                                   </h5>
                                 </Col>
