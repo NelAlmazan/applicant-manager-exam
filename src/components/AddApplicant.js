@@ -5,18 +5,7 @@ import MapboxGeocoder from "mapbox-gl-geocoder";
 import { graphql } from "react-apollo";
 import { flowRight as compose, set } from "lodash";
 
-import {
-  Row,
-  Col,
-  Button,
-  Form,
-  Layout,
-  Select,
-  Input,
-  message,
-  Icon,
-  Divider,
-} from "antd";
+import { Button, Layout, Input, message, Spin } from "antd";
 
 import { createApplicantMutation } from "../graphql/mutations";
 import { getApplicantsQuery } from "../graphql/queries";
@@ -122,7 +111,7 @@ const AddApplicant = (props) => {
     }
   };
 
-  const onFinish = (e) => {
+  const onFinish = async (e) => {
     e.preventDefault();
 
     let createdApplicant = {
@@ -138,7 +127,7 @@ const AddApplicant = (props) => {
       category: null,
     };
 
-    props.createApplicantMutation({
+    await props.createApplicantMutation({
       variables: createdApplicant,
       refetchQueries: [
         {
@@ -148,42 +137,43 @@ const AddApplicant = (props) => {
     });
 
     message.success(`${name}'s Information has been successfully created!`);
-    props.history.push("/");
+    await props.history.push("/");
   };
 
   return (
-    <div style={{ margin: "auto", maxWidth: "50rem" }}>
-      <h2 style={{ marginLeft: 10 }}>Applicant Information</h2>
-      <Layout>
-        <Content style={{ padding: "20px" }}>
-          <form onSubmit={onFinish} noValidate>
-            <label htmlFor="name">Name:</label>
-            <Input name="name" value={name} onChange={inputHandler} />
+    <Spin spinning={props.getApplicantsQuery.loading}>
+      <div style={{ margin: "auto", maxWidth: "50rem" }}>
+        <h2 style={{ marginLeft: 10 }}>Applicant Information</h2>
+        <Layout>
+          <Content style={{ padding: "20px" }}>
+            <form onSubmit={onFinish} noValidate>
+              <label htmlFor="name">Name:</label>
+              <Input name="name" value={name} onChange={inputHandler} />
 
-            <label htmlFor="username">Username:</label>
-            <Input name="username" value={username} onChange={inputHandler} />
+              <label htmlFor="username">Username:</label>
+              <Input name="username" value={username} onChange={inputHandler} />
 
-            <label htmlFor="email">Email:</label>
-            <Input
-              name="email"
-              type="email"
-              value={email}
-              onChange={inputHandler}
-            />
+              <label htmlFor="email">Email:</label>
+              <Input
+                name="email"
+                type="email"
+                value={email}
+                onChange={inputHandler}
+              />
 
-            <label htmlFor="phone">Phone:</label>
-            <Input name="phone" value={phone} onChange={inputHandler} />
+              <label htmlFor="phone">Phone:</label>
+              <Input name="phone" value={phone} onChange={inputHandler} />
 
-            <label htmlFor="phone">Address:</label>
-            <Input name="address" value={placeName} disabled={true} />
+              <label htmlFor="phone">Address:</label>
+              <Input name="address" value={placeName} disabled={true} />
 
-            <label htmlFor="latitude">Latitude:</label>
-            <Input name="latitude" value={latitude} disabled={true} />
+              <label htmlFor="latitude">Latitude:</label>
+              <Input name="latitude" value={latitude} disabled={true} />
 
-            <label htmlFor="longitude">Longitude:</label>
-            <Input name="longitude" value={longitude} disabled={true} />
-            <div ref={(el) => (mapContainer.current = el)} style={styles} />
-            {/* <pre
+              <label htmlFor="longitude">Longitude:</label>
+              <Input name="longitude" value={longitude} disabled={true} />
+              <div ref={(el) => (mapContainer.current = el)} style={styles} />
+              {/* <pre
               id="coordinates"
               // ref={(el) => (mapContainer.coordinates = el)}
               style={{
@@ -201,18 +191,19 @@ const AddApplicant = (props) => {
               }}
             /> */}
 
-            <Link to="/">
-              <Button type="text" htmlType="back" style={{ margin: 5 }}>
-                Go Back
+              <Link to="/">
+                <Button type="text" htmlType="back" style={{ margin: 5 }}>
+                  Go Back
+                </Button>
+              </Link>
+              <Button type="primary" htmlType="submit" style={{ margin: 5 }}>
+                Save
               </Button>
-            </Link>
-            <Button type="primary" htmlType="submit" style={{ margin: 5 }}>
-              Save
-            </Button>
-          </form>
-        </Content>
-      </Layout>
-    </div>
+            </form>
+          </Content>
+        </Layout>
+      </div>
+    </Spin>
   );
 };
 

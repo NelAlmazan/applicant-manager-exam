@@ -6,7 +6,6 @@ import {
   moveApplicantMutation,
   deleteApplicantMutation,
   saveOrRejectApplicantMutation,
-  updateApplicantMutation,
 } from "../graphql/mutations";
 import { getApplicantsQuery } from "../graphql/queries";
 
@@ -49,6 +48,8 @@ const Home = (props) => {
   const allApplicantsData = props.getApplicantsQuery.getApplicants;
 
   let applicantsData = [];
+
+  console.log("LOADING", props.getApplicantsQuery);
 
   const allCount =
     props.getApplicantsQuery &&
@@ -352,13 +353,16 @@ const Home = (props) => {
         paddingRight: "20px",
       }}
     >
-      {!allApplicantsData ? (
+      {props.getApplicantsQuery.loading ? (
         <div
           style={{
             display: "flex",
             justifyContent: "space-around",
+            flexDirection: "column",
+            textAlign: "center",
           }}
         >
+          <h2>Fetching data...</h2>
           <SyncOutlined spin style={{ fontSize: "5rem" }} />
         </div>
       ) : (
@@ -518,7 +522,13 @@ const Home = (props) => {
                                   )}
                                 </Row>
                                 {applicant.status === "pending" ? (
-                                  <div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flex: 1,
+                                      justifyContent: "flex-end",
+                                    }}
+                                  >
                                     <Button
                                       shape="round"
                                       onClick={btnSaveApplicant}

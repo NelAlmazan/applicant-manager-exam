@@ -24,9 +24,11 @@ function App() {
             marginBottom: 10,
           }}
         >
-          <h1 style={{ padding: 0, margin: 0, color: "white" }}>
-            Applicants Manager
-          </h1>
+          <a href="/">
+            <h1 style={{ padding: 0, margin: 0, color: "white" }}>
+              Applicants Manager
+            </h1>
+          </a>
         </div>
         <Router>
           <Switch>
